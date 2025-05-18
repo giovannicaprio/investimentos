@@ -1,0 +1,87 @@
+ticker,name,sector,industry,type
+ABEV3,Ambev S.A.,Consumer Defensive,Beverages—Brewers,Ação
+ALPA4,Alpargatas S.A.,Consumer Cyclical,Footwear & Accessories,Ação
+ALSO3,Aliansce Sonae Shopping Centers S.A.,Real Estate,REIT—Retail,FII
+ARZZ3,Arezzo Indústria e Comércio S.A.,Consumer Cyclical,Apparel Retail,Ação
+ASAI3,Assaí Atacadista S.A.,Consumer Defensive,Grocery Stores,Ação
+AZUL4,Azul S.A.,Industrials,Airlines,Ação
+B3SA3,B3 S.A. - Brasil, Bolsa, Balcão,Financial Services,Financial Data & Stock Exchanges,Ação
+BBAS3,Banco do Brasil S.A.,Financial Services,Banks—Global,Ação
+BBDC3,Banco Bradesco S.A.,Financial Services,Banks—Global,Ação
+BBDC4,Banco Bradesco S.A.,Financial Services,Banks—Global,Ação
+BBSE3,BB Seguridade Participações S.A.,Financial Services,Insurance—Property & Casualty,Ação
+BEEF3,Minerva S.A.,Consumer Defensive,Packaged Foods,Ação
+BPAC11,Banco BTG Pactual S.A.,Financial Services,Banks—Global,Ação
+BPAN4,Banco Pan S.A.,Financial Services,Banks—Regional,Ação
+BRAP4,Bradespar S.A.,Basic Materials,Other Industrial Metals & Mining,Ação
+BRFS3,BRF S.A.,Consumer Defensive,Packaged Foods,Ação
+BRKM5,Braskem S.A.,Basic Materials,Chemicals,Ação
+CASH3,Méliuz S.A.,Technology,Software—Application,Ação
+CCRO3,CCR S.A.,Industrials,Infrastructure Operations,Ação
+CIEL3,Cielo S.A.,Technology,Software—Infrastructure,Ação
+CMIG4,Companhia Energética de Minas Gerais,Utilities,Utilities—Regulated Electric,Ação
+CMIN3,CSN Mineração S.A.,Basic Materials,Other Industrial Metals & Mining,Ação
+COGN3,Cogna Educação S.A.,Consumer Defensive,Education & Training Services,Ação
+CPFE3,CPFL Energia S.A.,Utilities,Utilities—Regulated Electric,Ação
+CPLE6,Companhia Paranaense de Energia,Utilities,Utilities—Regulated Electric,Ação
+CRFB3,Carrefour Brasil S.A.,Consumer Defensive,Grocery Stores,Ação
+CSAN3,Companhia Siderúrgica Nacional,Basic Materials,Steel,Ação
+CSNA3,Companhia Siderúrgica Nacional,Basic Materials,Steel,Ação
+CVCB3,CVC Brasil Operadora e Agência de Viagens S.A.,Consumer Cyclical,Travel & Leisure,Ação
+CYRE3,Cyrela Brazil Realty S.A. Empreendimentos e Participações,Real Estate,Real Estate—Development,Ação
+DXCO3,Dexco S.A.,Industrials,Building Products & Equipment,Ação
+ECOR3,Ecorodovias Infraestrutura e Logística S.A.,Industrials,Infrastructure Operations,Ação
+EGIE3,Engie Brasil Energia S.A.,Utilities,Utilities—Renewable,Ação
+ELET3,Eletrobras,Utilities,Utilities—Regulated Electric,Ação
+ELET6,Eletrobras,Utilities,Utilities—Regulated Electric,Ação
+EMBR3,Embraer S.A.,Industrials,Aerospace & Defense,Ação
+ENBR3,EDP - Energias do Brasil S.A.,Utilities,Utilities—Regulated Electric,Ação
+ENEV3,Eneva S.A.,Utilities,Utilities—Independent Power Producers,Ação
+ENGI11,Energisa S.A.,Utilities,Utilities—Regulated Electric,Ação
+EQTL3,Equatorial Energia S.A.,Utilities,Utilities—Regulated Electric,Ação
+EZTC3,EZTEC Empreendimentos e Participações S.A.,Real Estate,Real Estate—Development,Ação
+FLRY3,Fleury S.A.,Healthcare,Diagnostics & Research,Ação
+GGBR4,Gerdau S.A.,Basic Materials,Steel,Ação
+GOAU4,Companhia Siderúrgica Nacional,Basic Materials,Steel,Ação
+GOLL4,Gol Linhas Aéreas Inteligentes S.A.,Industrials,Airlines,Ação
+HAPV3,Hapvida Participações e Investimentos S.A.,Healthcare,Healthcare Plans,Ação
+HGLG11,CSHG Logística - Fundo de Investimento Imobiliário,Real Estate,REIT—Industrial,FII
+HGRU11,CSHG Renda Urbana - Fundo de Investimento Imobiliário,Real Estate,REIT—Diversified,FII
+HYPE3,Hypersa S.A.,Healthcare,Medical Instruments & Supplies,Ação
+IGTI11,IGB S.A. - IGB Eletro,Utilities,Utilities—Regulated Electric,Ação
+IRBR3,IRB-Brasil Resseguros S.A.,Financial Services,Insurance—Reinsurance,Ação
+ITSA4,Itaúsa S.A.,Financial Services,Conglomerates,Ação
+ITUB4,Itaú Unibanco Holding S.A.,Financial Services,Banks—Global,Ação
+JBSS3,JBS S.A.,Consumer Defensive,Packaged Foods,Ação
+KLBN11,Klabin S.A.,Basic Materials,Paper & Paper Products,Ação
+KNRI11,Kinea Renda Imobiliária - Fundo de Investimento Imobiliário,Real Estate,REIT—Diversified,FII
+LREN3,Lojas Renner S.A.,Consumer Cyclical,Apparel Retail,Ação
+LWSA3,Locaweb Serviços de Internet S.A.,Technology,Software—Infrastructure,Ação
+MGLU3,Magazine Luiza S.A.,Consumer Cyclical,Internet Retail,Ação
+MRFG3,Marfrig Global Foods S.A.,Consumer Defensive,Packaged Foods,Ação
+MRVE3,MRV Engenharia e Participações S.A.,Real Estate,Real Estate—Development,Ação
+MULT3,Multiplan Empreendimentos Imobiliários S.A.,Real Estate,Real Estate—Development,Ação
+NTCO3,Natura &Co Holding S.A.,Consumer Defensive,Household & Personal Products,Ação
+PCAR3,Grupo Pão de Açúcar,Consumer Defensive,Grocery Stores,Ação
+PETR3,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,Ação
+PETR4,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,Ação
+PRIO3,PETRORIO S.A.,Energy,Oil & Gas E&P,Ação
+QUAL3,Qualicorp Consultoria e Corretora de Seguros S.A.,Healthcare,Healthcare Plans,Ação
+RADL3,Raia Drogasil S.A.,Healthcare,Pharmaceutical Retailers,Ação
+RAIL3,Rumo S.A.,Industrials,Railroads,Ação
+RENT3,Localiza Rent a Car S.A.,Industrials,Rental & Leasing Services,Ação
+SANB11,Banco Santander (Brasil) S.A.,Financial Services,Banks—Global,Ação
+SBSP3,Companhia de Saneamento Básico do Estado de São Paulo,Utilities,Utilities—Regulated Water,Ação
+SULA11,SulAmérica S.A.,Financial Services,Insurance—Diversified,Ação
+SUZB3,Suzano S.A.,Basic Materials,Paper & Paper Products,Ação
+TAEE11,Transmissora Aliança de Energia Elétrica S.A.,Utilities,Utilities—Regulated Electric,Ação
+TIMS3,TIM S.A.,Communication Services,Telecom Services,Ação
+TOTS3,TOTVS S.A.,Technology,Software—Application,Ação
+UGPA3,Ultrapar Participações S.A.,Energy,Oil & Gas Midstream,Ação
+USIM5,Usinas Siderúrgicas de Minas Gerais S.A.,Basic Materials,Steel,Ação
+VALE3,Vale S.A.,Basic Materials,Other Industrial Metals & Mining,Ação
+VIVT3,Telefônica Brasil S.A.,Communication Services,Telecom Services,Ação
+WEGE3,WEG S.A.,Industrials,Electrical Equipment & Parts,Ação
+WIZS3,Wiz Soluções e Corretagem de Seguros S.A.,Financial Services,Insurance Brokers,Ação
+XPML11,XP Malls Fundo de Investimento Imobiliário,Real Estate,REIT—Retail,FII
+YDUQ3,YDUQS Participações S.A.,Consumer Defensive,Education & Training Services,Ação 

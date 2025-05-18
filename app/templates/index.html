@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Guia de Investimentos{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<header class="mb-8">
+    <h1 class="text-4xl font-bold text-gray-800 mb-2">Guia de Investimentos</h1>
+    <p class="text-gray-600">Acompanhe e gerencie seus investimentos</p>
+</header>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Investido</h3>
+        <p id="total-invested" class="text-3xl font-bold text-gray-900">R$ 0,00</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Retorno Esperado</h3>
+        <p id="expected-return" class="text-3xl font-bold text-blue-600">0%</p>
+        <div class="mt-2">
+            <button onclick="toggleExpectedReturnDetails()" class="text-sm text-blue-500 hover:text-blue-700">
+                Ver detalhes por tipo
+            </button>
+            <div id="expected-return-details" class="hidden mt-2 text-sm">
+                <div class="space-y-1">
+                    <!-- Detalhes serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Retorno Real</h3>
+        <p id="actual-return" class="text-3xl font-bold text-green-600">0%</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Distribuição por Tipo</h3>
+        <canvas id="distribution-chart"></canvas>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Performance</h3>
+        <canvas id="performance-chart"></canvas>
+    </div>
+</div>
+
+<!-- Investments Table -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Meus Investimentos</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Inicial</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Atual</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retorno Real</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="investments-table-body" class="bg-white divide-y divide-gray-200">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Função para formatar valores monetários
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    // Função para formatar porcentagem
+    function formatPercentage(value) {
+        return `${value.toFixed(2)}%`;
+    }
+
+    // Função para calcular o retorno real
+    function calculateActualReturn(initial, current) {
+        if (initial === 0) return 0;
+        return ((current - initial) / initial) * 100;
+    }
+
+    // Função para determinar o status do investimento
+    function getInvestmentStatus(actualReturn, expectedReturn) {
+        const difference = actualReturn - expectedReturn;
+        if (difference >= 5) return { text: 'Excelente', color: 'text-green-600' };
+        if (difference >= 0) return { text: 'Bom', color: 'text-blue-600' };
+        if (difference >= -5) return { text: 'Regular', color: 'text-yellow-600' };
+        return { text: 'Atenção', color: 'text-red-600' };
+    }
+
+    // Função para calcular o retorno esperado por tipo de ativo
+    function calculateExpectedReturnByType(investments) {
+        const types = {};
+        const totalInvested = investments.reduce((sum, inv) => sum + inv.initial_value, 0);
+        
+        // Agrupa investimentos por tipo
+        investments.forEach(investment => {
+            if (!types[investment.type]) {
+                types[investment.type] = {
+                    total: 0,
+                    weightedReturn: 0
+                };
+            }
+            types[investment.type].total += investment.initial_value;
+            types[investment.type].weightedReturn += investment.expected_return * investment.initial_value;
+        });
+
+        // Calcula o retorno esperado para cada tipo
+        const returnsByType = Object.entries(types).map(([type, data]) => ({
+            type,
+            percentage: data.weightedReturn / data.total,
+            weight: (data.total / totalInvested) * 100
+        }));
+
+        return returnsByType;
+    }
+
+    // Função para atualizar os cards de resumo
+    function updateSummaryCards(investments) {
+        const totalInvested = investments.reduce((sum, inv) => sum + inv.initial_value, 0);
+        const totalCurrent = investments.reduce((sum, inv) => sum + inv.current_value, 0);
+        const weightedExpectedReturn = investments.reduce((sum, inv) => {
+            return sum + (inv.expected_return * inv.initial_value / totalInvested);
+        }, 0);
+        const actualReturn = calculateActualReturn(totalInvested, totalCurrent);
+
+        // Atualiza os valores principais
+        document.getElementById('total-invested').textContent = formatCurrency(totalInvested);
+        document.getElementById('expected-return').textContent = formatPercentage(weightedExpectedReturn);
+        document.getElementById('actual-return').textContent = formatPercentage(actualReturn);
+
+        // Atualiza os detalhes do retorno esperado por tipo
+        const returnsByType = calculateExpectedReturnByType(investments);
+        const detailsContainer = document.querySelector('#expected-return-details .space-y-1');
+        detailsContainer.innerHTML = returnsByType.map(returnData => `
+            <div class="flex justify-between items-center">
+                <span class="text-gray-600">${returnData.type}</span>
+                <div class="text-right">
+                    <span class="text-blue-600 font-medium">${formatPercentage(returnData.percentage)}</span>
+                    <span class="text-gray-500 text-xs ml-2">(${returnData.weight.toFixed(1)}% do total)</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Função para renderizar a tabela de investimentos
+    function renderInvestmentsTable(investments) {
+        const tbody = document.getElementById('investments-table-body');
+        tbody.innerHTML = '';
+
+        investments.forEach(investment => {
+            const actualReturn = calculateActualReturn(investment.initial_value, investment.current_value);
+            const status = getInvestmentStatus(actualReturn, investment.expected_return);
+
+            const row = `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${investment.name}</div>
+                        <div class="text-sm text-gray-500">${investment.description}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.type}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(investment.initial_value)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(investment.current_value)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${status.color}">${formatPercentage(actualReturn)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${status.color}">${status.text}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // Função para criar o gráfico de distribuição
+    function createDistributionChart(investments) {
+        const types = {};
+        investments.forEach(investment => {
+            types[investment.type] = (types[investment.type] || 0) + investment.initial_value;
+        });
+
+        const ctx = document.getElementById('distribution-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(types),
+                datasets: [{
+                    data: Object.values(types),
+                    backgroundColor: [
+                        '#3B82F6', // blue
+                        '#10B981', // green
+                        '#F59E0B', // yellow
+                        '#EF4444', // red
+                        '#8B5CF6'  // purple
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Função para criar o gráfico de performance
+    function createPerformanceChart(investments) {
+        const ctx = document.getElementById('performance-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: investments.map(inv => inv.name),
+                datasets: [{
+                    label: 'Retorno Real',
+                    data: investments.map(inv => calculateActualReturn(inv.initial_value, inv.current_value)),
+                    backgroundColor: '#3B82F6'
+                }, {
+                    label: 'Retorno Esperado',
+                    data: investments.map(inv => inv.expected_return),
+                    backgroundColor: '#10B981'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => `${value}%`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Função para alternar a visibilidade dos detalhes do retorno esperado
+    function toggleExpectedReturnDetails() {
+        const details = document.getElementById('expected-return-details');
+        details.classList.toggle('hidden');
+    }
+
+    // Carregar dados da API
+    fetch('/api/investments')
+        .then(response => response.json())
+        .then(data => {
+            updateSummaryCards(data);
+            renderInvestmentsTable(data);
+            createDistributionChart(data);
+            createPerformanceChart(data);
+        })
+        .catch(error => {
+            console.error('Erro ao carregar investimentos:', error);
+        });
+</script>
+{% endblock %} 

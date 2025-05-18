@@ -1,0 +1,679 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Ativos - Guia de Investimentos{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Gerenciar Investimentos</h1>
+        <p class="mt-2 text-gray-600">Adicione, edite ou remova seus investimentos</p>
+    </div>
+
+    <!-- Seção de Importação -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Importar Investimentos</h2>
+        <p class="text-gray-600 mb-4">Importe seus investimentos a partir de arquivos CSV das corretoras.</p>
+        
+        <div class="space-y-4">
+            <div class="flex items-center space-x-4">
+                <input type="file" id="csvFile" accept=".csv" class="hidden">
+                <button onclick="document.getElementById('csvFile').click()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Selecionar Arquivo
+                </button>
+                <span id="selectedFile" class="text-gray-600">Nenhum arquivo selecionado</span>
+                <button id="importButton" onclick="importSelectedFile()" 
+                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 hidden">
+                    Importar
+                </button>
+            </div>
+            
+            <div class="text-sm text-gray-500">
+                <p>Formatos suportados:</p>
+                <ul class="list-disc list-inside">
+                    <li>B3: arquivo deve conter "b3" no nome</li>
+                    <li>XP: arquivo deve conter "xp" no nome</li>
+                </ul>
+            </div>
+            
+            <div id="importStatus" class="hidden">
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <span class="ml-2">Importando...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário de Adição -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Adicionar Novo Investimento</h2>
+        <form id="investmentForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nome do Ativo</label>
+                    <div class="flex space-x-2">
+                        <input type="text" name="name" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                               id="stockInput"
+                               autocomplete="off">
+                        <button type="button" onclick="validateAndFetchStock(document.querySelector('input[name=name]').value)"
+                                class="mt-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Buscar
+                        </button>
+                    </div>
+                    <div id="stockSuggestions" class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-none sm:text-sm hidden"></div>
+                    <p id="stockValidationMessage" class="mt-1 text-sm text-gray-500"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                    <select name="type" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="acao">Ação</option>
+                        <option value="fii">Fundo Imobiliário</option>
+                        <option value="fundo">Renda Fixa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Valor Atual da Cota</label>
+                    <input type="number" name="current_share_value" step="0.01" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Retorno Esperado (%)</label>
+                    <input type="number" name="expected_return" step="0.01" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                    <textarea name="description"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+
+            <!-- Lista de Compras -->
+            <div class="mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-lg font-medium text-gray-900">Compras</h4>
+                    <button type="button" onclick="addPurchaseRow()"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Adicionar Compra
+                    </button>
+                </div>
+                <div id="purchasesList" class="space-y-4">
+                    <!-- Compras serão adicionadas aqui -->
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Adicionar Investimento
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Investimentos -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Investimentos Existentes</h2>
+        <div class="overflow-x-auto">
+            <table id="investmentsTable" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantidade</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Médio</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Atual</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Inicial</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Atual</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retorno Esperado</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retorno Real</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="investmentsTable" class="bg-white divide-y divide-gray-200">
+                    <!-- Dados serão inseridos via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edição -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Editar Investimento</h3>
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" name="id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nome do Ativo</label>
+                        <input type="text" name="name" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select name="type" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="acao">Ação</option>
+                            <option value="fii">Fundo Imobiliário</option>
+                            <option value="fundo">Renda Fixa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Valor Atual da Cota</label>
+                        <input type="number" name="current_share_value" step="0.01" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Retorno Esperado (%)</label>
+                        <input type="number" name="expected_return" step="0.01" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                        <textarea name="description"
+                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                    </div>
+                </div>
+
+                <!-- Lista de Compras -->
+                <div class="mt-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-medium text-gray-900">Compras</h4>
+                        <button type="button" onclick="addPurchaseRow()"
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Adicionar Compra
+                        </button>
+                    </div>
+                    <div id="purchasesList" class="space-y-4">
+                        <!-- Compras serão adicionadas aqui -->
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="closeEditModal()"
+                            class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template para linha de compra -->
+<template id="purchaseRowTemplate">
+    <div class="purchase-row bg-gray-50 p-4 rounded-lg">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Data</label>
+                <input type="date" name="purchase_date" required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quantidade</label>
+                <input type="number" name="purchase_quantity" min="1" required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Preço por Cota</label>
+                <input type="number" name="purchase_price" step="0.01" required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="flex items-end">
+                <button type="button" onclick="removePurchaseRow(this)"
+                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    Remover
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Funções de formatação
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+function formatPercentage(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'percent',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value / 100);
+}
+
+// Função para renderizar a tabela de investimentos
+function renderInvestmentsTable(investments) {
+    const tbody = document.querySelector('#investmentsTable tbody');
+    tbody.innerHTML = '';
+    
+    investments.forEach(investment => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        
+        // Calcular valores totais
+        const totalQuantity = investment.purchases.reduce((sum, p) => sum + p.quantity, 0);
+        const totalInitialValue = investment.purchases.reduce((sum, p) => sum + p.total_value, 0);
+        const averageShareValue = totalQuantity > 0 ? totalInitialValue / totalQuantity : 0;
+        const currentShareValue = investment.current_share_value || 0;
+        const currentValue = totalQuantity * currentShareValue;
+        const actualReturn = ((currentValue - totalInitialValue) / totalInitialValue * 100) || 0;
+        
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${investment.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.type}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${totalQuantity}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${averageShareValue.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${currentShareValue.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${totalInitialValue.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${currentValue.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.expected_return}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${actualReturn.toFixed(2)}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="editInvestment('${investment.id}')" class="text-blue-600 hover:text-blue-900 mr-4">Editar</button>
+                <button onclick="deleteInvestment('${investment.id}')" class="text-red-600 hover:text-red-900">Excluir</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Função para adicionar novo investimento
+async function addInvestment(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const investment = Object.fromEntries(formData.entries());
+    
+    // Coletar dados das compras
+    const purchases = [];
+    const purchaseRows = document.querySelectorAll('.purchase-row');
+    purchaseRows.forEach(row => {
+        const date = row.querySelector('[name="purchase_date"]').value;
+        const quantity = parseInt(row.querySelector('[name="purchase_quantity"]').value);
+        const price = parseFloat(row.querySelector('[name="purchase_price"]').value);
+        
+        purchases.push({
+            date: date,
+            quantity: quantity,
+            price_per_share: price,
+            total_value: quantity * price
+        });
+    });
+    
+    investment.purchases = purchases;
+    
+    try {
+        const response = await fetch('/api/investments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(investment)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao adicionar investimento');
+        }
+        
+        // Limpar formulário e atualizar tabela
+        event.target.reset();
+        document.getElementById('purchasesList').innerHTML = '';
+        addPurchaseRow(); // Adiciona uma nova linha de compra vazia
+        const investments = await fetchInvestments();
+        renderInvestmentsTable(investments);
+        
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Função para adicionar linha de compra
+function addPurchaseRow() {
+    const template = document.getElementById('purchaseRowTemplate');
+    const purchasesList = document.getElementById('purchasesList');
+    const clone = template.content.cloneNode(true);
+    purchasesList.appendChild(clone);
+}
+
+// Função para remover linha de compra
+function removePurchaseRow(button) {
+    const row = button.closest('.purchase-row');
+    row.remove();
+}
+
+// Função para editar investimento
+async function editInvestment(id) {
+    try {
+        const response = await fetch(`/api/investments/${id}`);
+        if (!response.ok) {
+            throw new Error('Erro ao carregar investimento');
+        }
+        
+        const investment = await response.json();
+        
+        // Preencher formulário de edição
+        const form = document.getElementById('editForm');
+        for (const [key, value] of Object.entries(investment)) {
+            if (key !== 'purchases') {
+                const input = form.elements[key];
+                if (input) {
+                    input.value = value;
+                }
+            }
+        }
+        
+        // Limpar e preencher lista de compras
+        const purchasesList = document.getElementById('purchasesList');
+        purchasesList.innerHTML = '';
+        
+        investment.purchases.forEach(purchase => {
+            addPurchaseRow();
+            const lastRow = purchasesList.lastElementChild;
+            lastRow.querySelector('[name="purchase_date"]').value = purchase.date;
+            lastRow.querySelector('[name="purchase_quantity"]').value = purchase.quantity;
+            lastRow.querySelector('[name="purchase_price"]').value = purchase.price_per_share;
+        });
+        
+        // Mostrar modal
+        document.getElementById('editModal').classList.remove('hidden');
+        
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Função para fechar modal de edição
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+}
+
+// Função para salvar edição
+async function saveEdit(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const investment = Object.fromEntries(formData.entries());
+    
+    // Coletar dados das compras
+    const purchases = [];
+    const purchaseRows = document.querySelectorAll('.purchase-row');
+    purchaseRows.forEach(row => {
+        const date = row.querySelector('[name="purchase_date"]').value;
+        const quantity = parseInt(row.querySelector('[name="purchase_quantity"]').value);
+        const price = parseFloat(row.querySelector('[name="purchase_price"]').value);
+        
+        purchases.push({
+            investment_id: parseInt(investment.id),
+            date: date,
+            quantity: quantity,
+            price_per_share: price,
+            total_value: quantity * price
+        });
+    });
+    
+    investment.purchases = purchases;
+    investment.current_share_value = parseFloat(investment.current_share_value);
+    
+    try {
+        const response = await fetch(`/api/investments/${investment.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(investment)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao atualizar investimento');
+        }
+        
+        // Fechar modal e atualizar tabela
+        closeEditModal();
+        const investments = await fetchInvestments();
+        renderInvestmentsTable(investments);
+        
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Função para excluir investimento
+async function deleteInvestment(id) {
+    if (!id || id === 'null' || id === 'undefined') {
+        alert('ID do investimento inválido');
+        return;
+    }
+
+    if (!confirm('Tem certeza que deseja excluir este investimento?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/investments/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao excluir investimento');
+        }
+        
+        // Atualizar tabela
+        const investments = await fetchInvestments();
+        renderInvestmentsTable(investments);
+        
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Função para buscar investimentos
+async function fetchInvestments() {
+    const response = await fetch('/api/investments');
+    return await response.json();
+}
+
+// Variável global para armazenar o arquivo selecionado
+let selectedFile = null;
+
+// Função para importar arquivo CSV
+async function importCSV(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const importStatus = document.getElementById('importStatus');
+    importStatus.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/api/import', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao importar arquivo');
+        }
+        
+        const result = await response.json();
+        alert(result.message);
+        
+        // Atualizar tabela
+        const investments = await fetchInvestments();
+        renderInvestmentsTable(investments);
+        
+        // Limpar seleção
+        selectedFile = null;
+        document.getElementById('selectedFile').textContent = 'Nenhum arquivo selecionado';
+        document.getElementById('importButton').classList.add('hidden');
+        
+    } catch (error) {
+        alert(error.message);
+    } finally {
+        importStatus.classList.add('hidden');
+    }
+}
+
+// Função para importar o arquivo selecionado
+function importSelectedFile() {
+    if (selectedFile) {
+        importCSV(selectedFile);
+    }
+}
+
+// Event Listeners
+document.getElementById('investmentForm').addEventListener('submit', addInvestment);
+document.getElementById('editForm').addEventListener('submit', saveEdit);
+
+document.getElementById('csvFile').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        selectedFile = file;
+        document.getElementById('selectedFile').textContent = file.name;
+        document.getElementById('importButton').classList.remove('hidden');
+    }
+});
+
+// Função para validar e buscar informações da ação
+function validateAndFetchStock(ticker) {
+    if (!ticker) return;
+    
+    // Remove .SA suffix if present
+    ticker = ticker.replace('.SA', '');
+    
+    fetch(`/api/validate_ticker/${ticker}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                fetch(`/api/stock_info/${ticker}`)
+                    .then(response => response.json())
+                    .then(stockData => {
+                        if (stockData) {
+                            document.getElementById('stockName').value = stockData.name;
+                            document.getElementById('stockSector').value = stockData.sector;
+                            document.getElementById('stockIndustry').value = stockData.industry;
+                            document.getElementById('stockPrice').value = stockData.current_price;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching stock info:', error);
+                        alert('Erro ao buscar informações da ação');
+                    });
+            } else {
+                alert('Ticker inválido');
+            }
+        })
+        .catch(error => {
+            console.error('Error validating ticker:', error);
+            alert('Erro ao validar ticker');
+        });
+}
+
+// Função para atualizar os valores baseado nas cotas e valor médio
+function updateValues(input) {
+    const form = input.closest('form');
+    const quantity = form.querySelector('input[name="quantity"]').value;
+    const averageValue = form.querySelector('input[name="average_share_value"]').value;
+    const initialValueInput = form.querySelector('input[name="initial_value"]');
+    const currentValueInput = form.querySelector('input[name="current_value"]');
+    
+    if (quantity && averageValue) {
+        const calculatedValue = (parseFloat(quantity) * parseFloat(averageValue)).toFixed(2);
+        
+        // Se o campo que está sendo alterado é o valor médio ou quantidade
+        if (input.name === 'average_share_value' || input.name === 'quantity') {
+            if (!initialValueInput.value) {
+                initialValueInput.value = calculatedValue;
+            }
+            if (!currentValueInput.value) {
+                currentValueInput.value = calculatedValue;
+            }
+        }
+    }
+}
+
+// Autocomplete functionality
+let stockData = null;
+
+// Load stock data from CSV
+async function loadStockData() {
+    try {
+        const response = await fetch('/static/data/ibovespa_tickers.csv');
+        const csvText = await response.text();
+        const rows = csvText.split('\n').slice(1); // Skip header
+        stockData = rows.map(row => {
+            const [ticker, name, sector, industry] = row.split(',');
+            return { ticker, name, sector, industry };
+        }).filter(row => row.ticker); // Filter out empty rows
+    } catch (error) {
+        console.error('Error loading stock data:', error);
+    }
+}
+
+// Initialize stock data when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    loadStockData();
+    addPurchaseRow();
+});
+
+// Handle stock input changes
+document.getElementById('stockInput').addEventListener('input', function(e) {
+    const input = e.target.value.toUpperCase();
+    const suggestionsDiv = document.getElementById('stockSuggestions');
+    
+    if (!input || !stockData) {
+        suggestionsDiv.classList.add('hidden');
+        return;
+    }
+
+    const matches = stockData.filter(stock => 
+        stock.ticker.includes(input) || 
+        stock.name.toUpperCase().includes(input)
+    ).slice(0, 5); // Limit to 5 suggestions
+
+    if (matches.length > 0) {
+        suggestionsDiv.innerHTML = matches.map(stock => `
+            <div class="cursor-pointer px-4 py-2 hover:bg-gray-100" 
+                 onclick="selectStock('${stock.ticker}', '${stock.name}')">
+                <div class="font-medium">${stock.ticker}</div>
+                <div class="text-sm text-gray-500">${stock.name}</div>
+            </div>
+        `).join('');
+        suggestionsDiv.classList.remove('hidden');
+    } else {
+        suggestionsDiv.classList.add('hidden');
+    }
+});
+
+// Handle stock selection
+function selectStock(ticker, name) {
+    const input = document.getElementById('stockInput');
+    input.value = ticker;
+    document.getElementById('stockSuggestions').classList.add('hidden');
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    const suggestionsDiv = document.getElementById('stockSuggestions');
+    const stockInput = document.getElementById('stockInput');
+    if (!stockInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+        suggestionsDiv.classList.add('hidden');
+    }
+});
+
+// Carregar investimentos iniciais
+fetchInvestments().then(renderInvestmentsTable);
+</script>
+{% endblock %} 
