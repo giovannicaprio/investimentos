@@ -29,10 +29,11 @@
             </div>
             
             <div class="text-sm text-gray-500">
-                <p>Formatos suportados:</p>
+                <p>O arquivo deve ter os seguintes dados separados por ponto e vírgula -> ;</p>
                 <ul class="list-disc list-inside">
-                    <li>B3: arquivo deve conter "b3" no nome</li>
-                    <li>XP: arquivo deve conter "xp" no nome</li>
+                    <li>Ticker;Posição;% Alocação;Rentabilidade c/ proventos;Rentabilidade Bruta;Preço médio (abertura);Última cotação;Quantidade de Cotas
+                    </li>
+                    <li>IRDM11;R$ 3.170,00;21,67%;43,69%;56,16%;R$ 95,03;R$ 69,40;550</li>
                 </ul>
             </div>
             
@@ -125,7 +126,7 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Médio</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Atual</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Inicial</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Atual</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posição Atual</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retorno Esperado</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retorno Real</th>
                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -265,21 +266,21 @@ function renderInvestmentsTable(investments) {
         row.className = 'hover:bg-gray-50';
         
         // Calcular valores totais
-        const totalQuantity = investment.purchases.reduce((sum, p) => sum + p.quantity, 0);
-        const totalInitialValue = investment.purchases.reduce((sum, p) => sum + p.total_value, 0);
+        const totalQuantity = investment.purchases.reduce((sum, p) => sum + (p.quantity || 0), 0);
+        const totalInitialValue = investment.purchases.reduce((sum, p) => sum + (p.total_value || 0), 0);
         const averageShareValue = totalQuantity > 0 ? totalInitialValue / totalQuantity : 0;
-        const currentShareValue = investment.current_share_value || 0;
+        const currentShareValue = parseFloat(investment.current_share_value) || 0;
         const currentValue = totalQuantity * currentShareValue;
-        const actualReturn = ((currentValue - totalInitialValue) / totalInitialValue * 100) || 0;
+        const actualReturn = totalInitialValue > 0 ? ((currentValue - totalInitialValue) / totalInitialValue * 100) : 0;
         
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${investment.name}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.type}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${totalQuantity}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${averageShareValue.toFixed(2)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${currentShareValue.toFixed(2)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${totalInitialValue.toFixed(2)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${currentValue.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(averageShareValue)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(currentShareValue)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(totalInitialValue)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(currentValue)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.expected_return}%</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${actualReturn.toFixed(2)}%</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

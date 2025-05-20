@@ -19,6 +19,8 @@ from app.importers import get_importer
 from .services.stock_service import StockService
 from app.services.stock_service import StockService
 from app.routes import router as stock_router
+from app.importers.posicao_atual_importer import PosicaoAtualImporter
+import logging
 
 app = FastAPI()
 
@@ -47,6 +49,8 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+logger = logging.getLogger(__name__)
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -68,6 +72,20 @@ async def get_investment_route(investment_id: int):
 
 @app.post("/api/investments", response_model=Investment)
 async def create_investment_route(investment: Investment):
+    # Verifica se o ativo já existe baseado no ticker
+    existing_investment = next((inv for inv in get_investments() if inv.name == investment.name), None)
+    if existing_investment:
+        # Soma as cotas e recalcula o preço médio
+        total_quantity = existing_investment.total_quantity + investment.total_quantity
+        total_value = existing_investment.initial_value + investment.initial_value
+        avg_price = total_value / total_quantity if total_quantity > 0 else 0
+        existing_investment.purchases.extend(investment.purchases)
+        existing_investment.current_share_value = investment.current_share_value
+        existing_investment.expected_return = investment.expected_return
+        existing_investment.description = investment.description
+        # Atualiza o investimento existente
+        update_investment(existing_investment.id, existing_investment)
+        return existing_investment
     return create_investment(investment)
 
 @app.put("/api/investments/{investment_id}", response_model=Investment)
@@ -95,36 +113,39 @@ async def delete_investment_route(investment_id: int):
         raise HTTPException(status_code=404, detail=str(e))
 
 @app.post("/api/import")
-async def import_investments(file: UploadFile = File(...)):
-    # Salva o arquivo temporariamente
-    file_path = UPLOAD_DIR / file.filename
-    with file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
+async def import_investments_route(file: UploadFile = File(...)):
     try:
-        # Obtém o importador apropriado
-        importer = get_importer(str(file_path))
-        if not importer:
-            raise HTTPException(status_code=400, detail="Formato de arquivo não suportado")
+        # Salva o arquivo temporariamente
+        file_path = f"/tmp/{file.filename}"
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
         
-        # Importa os dados
+        # Usa o importador específico para posição atual
+        importer = PosicaoAtualImporter(file_path)
         investments = importer.import_data()
+        
+        # Remove o arquivo temporário
+        os.remove(file_path)
+        
         if not investments:
             raise HTTPException(status_code=400, detail="Nenhum investimento válido encontrado no arquivo")
         
-        # Adiciona os investimentos ao banco de dados
+        # Log detalhado dos investimentos processados
+        logger.info(f"Investimentos processados: {investments}")
+        
+        # Salva os investimentos no banco de dados
         for investment in investments:
-            create_investment(investment)
+            try:
+                create_investment(investment)
+            except Exception as e:
+                logger.error(f"Erro ao criar investimento: {str(e)}")
         
         return {"message": f"{len(investments)} investimentos importados com sucesso"}
         
     except Exception as e:
+        logger.error(f"Erro ao importar arquivo: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-        
-    finally:
-        # Remove o arquivo temporário
-        if file_path.exists():
-            file_path.unlink()
 
 @app.get("/api/stocks/{ticker}")
 async def get_stock_info(ticker: str):
