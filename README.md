@@ -1,45 +1,84 @@
-# FastAPI Web Application
+# Projeto Financeiro
 
-This is a simple web application built with FastAPI and modern frontend technologies.
+## Overview
+Este projeto é uma aplicação web para gerenciamento de investimentos. Ele permite que os usuários importem dados de investimentos a partir de arquivos CSV, visualizem e editem seus investimentos, e acompanhem o desempenho de seus ativos.
 
-## Setup
+## Funcionalidades
+- Importação de investimentos via arquivo CSV
+- Visualização e edição de investimentos
+- Cálculo de retorno esperado e real
+- Suporte para diferentes tipos de ativos (ações, FIIs, etc.)
 
-1. Create and activate a virtual environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-```
+## Tecnologias Utilizadas
+- FastAPI
+- Uvicorn
+- Pandas
+- Jinja2
+- HTML/CSS/JavaScript
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+## Instruções para Rodar
 
-## Running the Application
+### Pré-requisitos
+- Python 3.8 ou superior
+- pip (gerenciador de pacotes Python)
 
-1. Make sure you're in the project root directory and your virtual environment is activated.
+### Instalação
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/giovannicaprio/investimentos.git
+   cd investimentos
+   git checkout public
+   ```
 
-2. Run the application:
-```bash
-cd app
-uvicorn main:app --reload
-```
+2. Crie um ambiente virtual e ative-o:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # No Windows, use `venv\Scripts\activate`
+   ```
 
-3. Open your browser and navigate to:
-```
-http://localhost:8000
-```
+3. Instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Features
+### Executando a Aplicação
+1. Inicie o servidor:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
-- FastAPI backend with automatic API documentation
-- Modern frontend with Tailwind CSS
-- API endpoint example at `/api/hello`
-- Interactive web interface
+2. Acesse a aplicação em seu navegador:
+   ```
+   http://127.0.0.1:8000
+   ```
 
-## API Documentation
+## Estrutura do Projeto
+- `app/`: Diretório principal da aplicação
+  - `importers/`: Módulos para importação de dados
+  - `models/`: Definições de modelos de dados
+  - `templates/`: Templates HTML
+  - `static/`: Arquivos estáticos (CSS, JS, etc.)
+  - `main.py`: Ponto de entrada da aplicação
 
-Once the application is running, you can access the automatic API documentation at:
-```
-http://localhost:8000/docs
-``` 
+## Contribuição
+Contribuições são bem-vindas! Por favor, sinta-se à vontade para enviar um Pull Request.
+
+## Licença
+Este projeto está licenciado sob a licença MIT.
+
+## Uso do Arquivo run.sh
+
+Para facilitar a execução da aplicação, você pode usar o script `run.sh`. Este script automatiza o processo de ativação do ambiente virtual e inicialização do servidor.
+
+### Como Usar
+1. Certifique-se de que o arquivo `run.sh` tem permissão de execução:
+   ```bash
+   chmod +x run.sh
+   ```
+
+2. Execute o script:
+   ```bash
+   ./run.sh
+   ```
+
+O script irá ativar o ambiente virtual e iniciar o servidor da aplicação automaticamente. 
