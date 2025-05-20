@@ -43,6 +43,7 @@ def create_investment(investment: Investment) -> Investment:
 
 def update_investment(id: int, investment: Investment) -> Optional[Investment]:
     """Atualiza um investimento existente"""
+    global _next_purchase_id
     for i, existing in enumerate(_investments):
         if existing.id == id:
             investment.id = id

@@ -10,10 +10,14 @@
 </header>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
     <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Investido</h3>
         <p id="total-invested" class="text-3xl font-bold text-gray-900">R$ 0,00</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Posição Atual</h3>
+        <p id="total-current" class="text-3xl font-bold text-blue-600">R$ 0,00</p>
     </div>
     <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold text-gray-700 mb-2">Retorno Esperado</h3>
@@ -58,7 +62,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Inicial</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Atual</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posição Atual</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retorno Real</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
@@ -90,7 +94,7 @@
 
     // Função para calcular o retorno real
     function calculateActualReturn(initial, current) {
-        if (initial === 0) return 0;
+        if (!initial || initial === 0) return 0;
         return ((current - initial) / initial) * 100;
     }
 
@@ -106,7 +110,7 @@
     // Função para calcular o retorno esperado por tipo de ativo
     function calculateExpectedReturnByType(investments) {
         const types = {};
-        const totalInvested = investments.reduce((sum, inv) => sum + inv.initial_value, 0);
+        const totalInvested = investments.reduce((sum, inv) => sum + (inv.initial_value || 0), 0);
         
         // Agrupa investimentos por tipo
         investments.forEach(investment => {
@@ -116,31 +120,76 @@
                     weightedReturn: 0
                 };
             }
-            types[investment.type].total += investment.initial_value;
-            types[investment.type].weightedReturn += investment.expected_return * investment.initial_value;
+            const initialValue = investment.initial_value || 0;
+            types[investment.type].total += initialValue;
+            types[investment.type].weightedReturn += (investment.expected_return || 0) * initialValue;
         });
 
         // Calcula o retorno esperado para cada tipo
         const returnsByType = Object.entries(types).map(([type, data]) => ({
             type,
-            percentage: data.weightedReturn / data.total,
-            weight: (data.total / totalInvested) * 100
+            percentage: data.total > 0 ? data.weightedReturn / data.total : 0,
+            weight: totalInvested > 0 ? (data.total / totalInvested) * 100 : 0
         }));
 
         return returnsByType;
     }
 
+    // Função para renderizar a tabela de investimentos
+    function renderInvestmentsTable(investments) {
+        const tbody = document.getElementById('investments-table-body');
+        tbody.innerHTML = '';
+
+        investments.forEach(investment => {
+            // Calcular valores totais
+            const totalQuantity = investment.purchases.reduce((sum, p) => sum + (p.quantity || 0), 0);
+            const totalInitialValue = investment.purchases.reduce((sum, p) => sum + (p.total_value || 0), 0);
+            const currentShareValue = parseFloat(investment.current_share_value) || 0;
+            const currentValue = totalQuantity * currentShareValue;
+            const actualReturn = calculateActualReturn(totalInitialValue, currentValue);
+            const status = getInvestmentStatus(actualReturn, investment.expected_return || 0);
+
+            const row = `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${investment.name}</div>
+                        <div class="text-sm text-gray-500">${investment.description || ''}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.type}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(totalInitialValue)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(currentValue)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${status.color}">${formatPercentage(actualReturn)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${status.color}">${status.text}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
     // Função para atualizar os cards de resumo
     function updateSummaryCards(investments) {
-        const totalInvested = investments.reduce((sum, inv) => sum + inv.initial_value, 0);
-        const totalCurrent = investments.reduce((sum, inv) => sum + inv.current_value, 0);
-        const weightedExpectedReturn = investments.reduce((sum, inv) => {
-            return sum + (inv.expected_return * inv.initial_value / totalInvested);
+        // Calcular valores totais considerando as compras
+        const totalInvested = investments.reduce((sum, inv) => {
+            const initialValue = inv.purchases.reduce((pSum, p) => pSum + (p.total_value || 0), 0);
+            return sum + initialValue;
         }, 0);
+
+        const totalCurrent = investments.reduce((sum, inv) => {
+            const totalQuantity = inv.purchases.reduce((qSum, p) => qSum + (p.quantity || 0), 0);
+            const currentShareValue = parseFloat(inv.current_share_value) || 0;
+            return sum + (totalQuantity * currentShareValue);
+        }, 0);
+
+        const weightedExpectedReturn = totalInvested > 0 ? investments.reduce((sum, inv) => {
+            const initialValue = inv.purchases.reduce((pSum, p) => pSum + (p.total_value || 0), 0);
+            return sum + ((inv.expected_return || 0) * initialValue / totalInvested);
+        }, 0) : 0;
+
         const actualReturn = calculateActualReturn(totalInvested, totalCurrent);
 
         // Atualiza os valores principais
         document.getElementById('total-invested').textContent = formatCurrency(totalInvested);
+        document.getElementById('total-current').textContent = formatCurrency(totalCurrent);
         document.getElementById('expected-return').textContent = formatPercentage(weightedExpectedReturn);
         document.getElementById('actual-return').textContent = formatPercentage(actualReturn);
 
@@ -158,37 +207,13 @@
         `).join('');
     }
 
-    // Função para renderizar a tabela de investimentos
-    function renderInvestmentsTable(investments) {
-        const tbody = document.getElementById('investments-table-body');
-        tbody.innerHTML = '';
-
-        investments.forEach(investment => {
-            const actualReturn = calculateActualReturn(investment.initial_value, investment.current_value);
-            const status = getInvestmentStatus(actualReturn, investment.expected_return);
-
-            const row = `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${investment.name}</div>
-                        <div class="text-sm text-gray-500">${investment.description}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${investment.type}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(investment.initial_value)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(investment.current_value)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${status.color}">${formatPercentage(actualReturn)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${status.color}">${status.text}</td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
-        });
-    }
-
     // Função para criar o gráfico de distribuição
     function createDistributionChart(investments) {
         const types = {};
         investments.forEach(investment => {
-            types[investment.type] = (types[investment.type] || 0) + investment.initial_value;
+            // Calcular o valor total investido para este investimento
+            const initialValue = investment.purchases.reduce((sum, p) => sum + (p.total_value || 0), 0);
+            types[investment.type] = (types[investment.type] || 0) + initialValue;
         });
 
         const ctx = document.getElementById('distribution-chart').getContext('2d');
@@ -212,6 +237,14 @@
                 plugins: {
                     legend: {
                         position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                return `${context.label}: ${formatCurrency(value)}`;
+                            }
+                        }
                     }
                 }
             }
@@ -221,17 +254,29 @@
     // Função para criar o gráfico de performance
     function createPerformanceChart(investments) {
         const ctx = document.getElementById('performance-chart').getContext('2d');
+        
+        // Preparar dados para o gráfico
+        const labels = investments.map(inv => inv.name);
+        const realReturns = investments.map(inv => {
+            const totalQuantity = inv.purchases.reduce((sum, p) => sum + (p.quantity || 0), 0);
+            const totalInitialValue = inv.purchases.reduce((sum, p) => sum + (p.total_value || 0), 0);
+            const currentShareValue = parseFloat(inv.current_share_value) || 0;
+            const currentValue = totalQuantity * currentShareValue;
+            return calculateActualReturn(totalInitialValue, currentValue);
+        });
+        const expectedReturns = investments.map(inv => inv.expected_return || 0);
+
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: investments.map(inv => inv.name),
+                labels: labels,
                 datasets: [{
                     label: 'Retorno Real',
-                    data: investments.map(inv => calculateActualReturn(inv.initial_value, inv.current_value)),
+                    data: realReturns,
                     backgroundColor: '#3B82F6'
                 }, {
                     label: 'Retorno Esperado',
-                    data: investments.map(inv => inv.expected_return),
+                    data: expectedReturns,
                     backgroundColor: '#10B981'
                 }]
             },
@@ -241,7 +286,17 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: value => `${value}%`
+                            callback: value => `${value.toFixed(2)}%`
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                return `${context.dataset.label}: ${value.toFixed(2)}%`;
+                            }
                         }
                     }
                 }

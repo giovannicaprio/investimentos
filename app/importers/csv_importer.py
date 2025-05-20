@@ -34,19 +34,24 @@ class CSVImporter:
     def read_file(self) -> bool:
         """Lê o arquivo CSV e armazena os dados"""
         try:
-            # Tenta diferentes encodings
+            # Tenta diferentes encodings e separadores
             encodings = ['utf-8', 'latin1', 'iso-8859-1']
             for encoding in encodings:
                 try:
-                    self.data = pd.read_csv(self.file_path, encoding=encoding)
-                    logger.info(f"Arquivo lido com sucesso usando encoding {encoding}")
-                    return True
+                    # Primeiro tenta com separador padrão (vírgula)
+                    try:
+                        self.data = pd.read_csv(self.file_path, encoding=encoding)
+                        logger.info(f"Arquivo lido com sucesso usando encoding {encoding} e separador padrão (',')")
+                        return True
+                    except Exception:
+                        # Se falhar, tenta com separador ponto e vírgula
+                        self.data = pd.read_csv(self.file_path, encoding=encoding, sep=';')
+                        logger.info(f"Arquivo lido com sucesso usando encoding {encoding} e separador ';'")
+                        return True
                 except UnicodeDecodeError:
                     continue
-                    
-            logger.error("Não foi possível ler o arquivo com nenhum encoding suportado")
+            logger.error("Não foi possível ler o arquivo com nenhum encoding suportado e separador detectado")
             return False
-            
         except Exception as e:
             logger.error(f"Erro ao ler arquivo CSV: {str(e)}")
             return False
@@ -267,6 +272,68 @@ class XPCSVImporter(CSVImporter):
                 
         return converted_records
 
+class PosicaoAtualImporter(CSVImporter):
+    """Importador específico para o arquivo de posição atual"""
+    
+    def __init__(self, file_path: str):
+        super().__init__(file_path)
+        self.required_columns = [
+            'Ticker', 'Posição', '% Alocação', 'Rentabilidade c/ proventos',
+            'Rentabilidade Bruta', 'Preço médio (abertura)', 'Última cotação',
+            'Quantidade de Cotas'
+        ]
+    
+    def convert_data(self) -> List[Dict[str, Any]]:
+        """Converte os dados do arquivo de posição atual"""
+        records = []
+        
+        for record in self.data:
+            try:
+                # Cria um novo dicionário para o registro convertido
+                converted_record = {}
+                
+                # Nome do ativo
+                converted_record['name'] = record['Ticker']
+                
+                # Tipo do ativo (baseado no sufixo)
+                ticker = record['Ticker']
+                if ticker.endswith('11'):
+                    converted_record['type'] = 'fii'
+                else:
+                    converted_record['type'] = 'acao'
+                
+                # Converte valores monetários
+                position = str(record['Posição']).replace('R$', '').replace('.', '').replace(',', '.').strip()
+                avg_price = str(record['Preço médio (abertura)']).replace('R$', '').replace('.', '').replace(',', '.').strip()
+                current_price = str(record['Última cotação']).replace('R$', '').replace('.', '').replace(',', '.').strip()
+                
+                # Converte quantidade
+                quantity = str(record['Quantidade de Cotas']).replace('.', '').replace(',', '.').strip()
+                
+                # Converte rentabilidade
+                rentabilidade = str(record['Rentabilidade c/ proventos']).replace('%', '').replace('.', '').replace(',', '.').strip()
+                
+                # Cria uma compra com os dados
+                purchase = {
+                    'date': datetime.now().strftime('%Y-%m-%d'),
+                    'quantity': int(float(quantity)),
+                    'price_per_share': float(avg_price),
+                    'total_value': float(position)
+                }
+                
+                converted_record['purchases'] = [purchase]
+                converted_record['current_share_value'] = float(current_price)
+                converted_record['expected_return'] = float(rentabilidade) if rentabilidade != '-' else 0.0
+                converted_record['description'] = f"Importado do arquivo de posição atual em {datetime.now().strftime('%d/%m/%Y')}"
+                
+                records.append(converted_record)
+                
+            except Exception as e:
+                logger.error(f"Erro ao converter registro: {str(e)}")
+                continue
+        
+        return records
+
 def get_importer(file_path: str) -> Optional[CSVImporter]:
     """Factory para criar o importador apropriado baseado no nome do arquivo"""
     file_name = Path(file_path).name.lower()
@@ -275,6 +342,8 @@ def get_importer(file_path: str) -> Optional[CSVImporter]:
         return B3CSVImporter(file_path)
     elif 'xp' in file_name:
         return XPCSVImporter(file_path)
+    elif 'posicao_atual' in file_name:
+        return PosicaoAtualImporter(file_path)
     else:
         logger.error(f"Formato de arquivo não suportado: {file_name}")
         return None 
